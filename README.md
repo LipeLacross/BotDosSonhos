@@ -1,3 +1,5 @@
+## 🌐 [English Version of README](README_EN.md)
+
 # Bot de Atendimento para Estabelecimentos Gerais
 
 O projeto é um bot de pré-atendimento desenvolvido usando Python, Flask e Twilio. O bot é projetado para responder automaticamente a mensagens recebidas via WhatsApp, fornecendo informações úteis e registrando interações em um banco de dados SQLite. Ele é adaptável para diferentes tipos de estabelecimentos, como lojas, restaurantes, e serviços.
