@@ -3,6 +3,7 @@ from twilio.rest import Client
 import logging
 import os
 import sqlite3
+
 app = Flask(__name__)
 
 # Configurações do Twilio
@@ -14,43 +15,50 @@ client = Client(TWILIO_SID, TWILIO_AUTH_TOKEN)
 logging.basicConfig(level=logging.INFO)
 
 def init_db():
+    """Inicializa o banco de dados e cria a tabela de mensagens se não existir."""
     with sqlite3.connect('database.db') as conn:
         cursor = conn.cursor()
-        cursor.execute('''CREATE TABLE IF NOT EXISTS messages
-                          (id INTEGER PRIMARY KEY, from_number TEXT, message TEXT, response TEXT)''')
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS messages (
+                id INTEGER PRIMARY KEY,
+                from_number TEXT,
+                message TEXT,
+                response TEXT
+            )
+        ''')
         conn.commit()
 
 def log_message(from_number, message, response):
-    """Registra a mensagem e a resposta no banco de dados"""
+    """Registra a mensagem e a resposta no banco de dados."""
     with sqlite3.connect('database.db') as conn:
         cursor = conn.cursor()
-        cursor.execute('INSERT INTO messages (from_number, message, response) VALUES (?, ?, ?)',
-                       (from_number, message, response))
+        cursor.execute('''
+            INSERT INTO messages (from_number, message, response)
+            VALUES (?, ?, ?)
+        ''', (from_number, message, response))
         conn.commit()
 
 @app.route('/whatsapp', methods=['POST'])
 def whatsapp_reply():
+    """Recebe mensagens do WhatsApp e responde com base no conteúdo da mensagem."""
     incoming_msg = request.form.get('Body', '').strip().lower()
     from_number = request.form.get('From')
 
     logging.info(f"Received message: {incoming_msg} from {from_number}")
 
-    response = ""
-
+    # Determina a resposta com base na mensagem recebida
     if 'pedido' in incoming_msg:
-        response = ("Ótimo! Para começar, qual tipo de pizza você gostaria de pedir? "
-                    "Temos opções como Margherita, Pepperoni, Quatro Queijos, entre outras.")
+        response = ("Ótimo! Como posso ajudá-lo com seu pedido? Por favor, informe o item ou serviço desejado.")
     elif 'informações sobre o menu' in incoming_msg:
-        response = ("Claro! Nosso menu inclui uma variedade de pizzas, massas, saladas e sobremesas. "
-                    "Qual informação específica você deseja saber? (preços, ingredientes, etc.)")
+        response = ("Claro! Podemos fornecer informações sobre nossos produtos e serviços. O que você gostaria de saber?")
     elif 'status do pedido' in incoming_msg:
         response = ("Para verificar o status do seu pedido, por favor, forneça o número do pedido ou o nome associado ao pedido.")
     elif 'promoções' in incoming_msg:
-        response = ("Atualmente, temos as seguintes promoções: 20% de desconto em pizzas grandes, e uma sobremesa grátis em pedidos acima de R$80.")
+        response = ("Atualmente, temos as seguintes promoções: [Descreva promoções atuais aqui].")
     elif 'outras dúvidas' in incoming_msg:
-        response = ("Pode me informar qual é a sua dúvida? Farei o meu melhor para ajudar. Se necessário, encaminharei você para um atendente.")
+        response = ("Por favor, descreva sua dúvida ou questão, e faremos o nosso melhor para ajudar.")
     else:
-        response = ("Olá! Bem-vindo à [Nome da Pizzaria]. Sou o assistente virtual. Como posso ajudar você hoje?")
+        response = ("Olá! Sou o assistente virtual. Como posso ajudar você hoje?")
 
     # Envia a resposta de volta ao usuário
     client.messages.create(
@@ -61,6 +69,7 @@ def whatsapp_reply():
 
     logging.info(f"Sent response: {response} to {from_number}")
 
+    # Registra a mensagem e a resposta
     log_message(from_number, incoming_msg, response)
 
     return jsonify({"status": "success"})
